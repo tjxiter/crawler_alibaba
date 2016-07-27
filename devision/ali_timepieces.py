@@ -7,7 +7,7 @@ import common
 
 
 cids = [
-    #'CID1509', 'CID1511',
+    'CID1509', 'CID1511',
     'CID1512', 'CID1528'
 ]
 

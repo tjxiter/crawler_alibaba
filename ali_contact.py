@@ -7,6 +7,7 @@ sys.setdefaultencoding("utf-8")
 import time
 import urllib2
 import re
+import json
 
 import requests
 from bs4 import BeautifulSoup
@@ -15,11 +16,14 @@ from selenium.common.exceptions import TimeoutException
 from openpyxl import Workbook
 
 
+all_items = [u'City', u'Fax', u'Country/Region', 'name', u'Zip', u'Telephone', u'Mobile Phone', u'Address', u'Province/State']
+
 def crawl_all():
 
     f = open('sample.txt', 'r')
     ffprofile = webdriver.FirefoxProfile('/Users/tjx/Library/Application Support/Firefox/Profiles/tiffgp2i.default')
     driver = webdriver.Firefox(firefox_profile=ffprofile)
+    driver.set_page_load_timeout(20)
     driver.get('http://www.alibaba.com')
 
     # 第一次需要手动输入密码
@@ -34,67 +38,87 @@ def crawl_all():
             cnt += 1
         else:
             time.sleep(5)
-        conss.append(cons)
+
+        if cons is not None:
+            conss.append(cons)
 
     # 保存为csv
     create_csv(conss)
 
-    '''
-    保存文件
+    #保存文件
     text = ''
     for one in conss:
         text = '%s\n%s' % (text, one)
 
     f = open('contact_infos.txt', 'a')
     f.write(text)
-    '''
+
 
 def crawl_ali_contact(driver, url):
 
     t1 = time.time()
     print url
-    driver.get(url)
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-
-    t2 = time.time()
-    print 't2-t1: %s' % (t2-t1)
-
     try:
-        #import pdb; pdb.set_trace()
+        driver.get(url)
+
+        t2 = time.time()
+        print 't2-t1: %s' % (t2-t1)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
         contact_url = soup.find('td', {'class': 'action-contact'}).a.get('href')
         print 'contact_url: %s' % contact_url
 
-        t3 = time.time()
-        print 't3-t2: %s' % (t3-t2)
-
         cons = get_contact(driver, contact_url)
 
-        t4 = time.time()
-        print 't4-t3: %s' % (t4-t3)
+        t3 = time.time()
+        print 't3-t2: %s' % (t3-t2)
         return cons
+
+    except TimeoutException:
+        print 'timeout..............'
+        return None
     except Exception, e:
         print e
+        return None
 
 
 def get_contact(driver, con_url):
 
     if con_url is None:
         return
+    try:
+        driver.get(con_url)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        info = {}
+        overview = soup.find('div', {'class': 'contact-overview'}).find('div', {'class': 'contact-info'})
 
-    driver.get(con_url)
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    info = {}
-    overview = soup.find('div', {'class': 'contact-overview'}).find('div', {'class': 'contact-info'})
+        info['name'] = overview.h1.text.strip()
+        details = soup.find('div', {'class': 'contact-detail'})
 
-    info['name'] = overview.h1.text.strip()
-    details = soup.find('div', {'class': 'contact-detail'})
+        k = details.findAll('dt')
+        v = details.findAll('dd')
+        for i in range(len(k)):
+            info[k[i].text[:-1]] = v[i].text if v[i].text else 'None'
 
-    k = details.findAll('dt')
-    v = details.findAll('dd')
-    for i in range(len(k)):
-        info[k[i].text[:-1]] = v[i].text
 
-    #import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
+        phone_url = 'https://highrich-leather.en.alibaba.com/event/app/contactPerson/showContactInfo.htm?encryptAccountId=IDX1AUz_1SRC3Ip3WLF6oUsZmjJVrj4bYT4sPXDjNraA3oqIuJBdiCLIGRO3gOVrsf32'
+        driver.get(phone_url)
+
+        soupp = BeautifulSoup(driver.page_source, "html.parser")
+        soup_dict = json.loads(soupp.find('pre').text)
+
+        info['Telephone'] = soup_dict['contactInfo']['accountPhone']
+        info['Fax'] = soup_dict['contactInfo']['accountFax']
+        info['Mobile Phone'] = soup_dict['contactInfo']['accountMobileNo']
+
+        global all_items
+        for one in all_items:
+            if one not in info:
+                info[one] = 'None'
+    except TimeoutException:
+        return None
+
     print info
     return info
 
@@ -108,7 +132,6 @@ def create_csv(data, file_name="tmp.csv"):
 
     for one in data:
         r = []
-
         for k, v in one.items():
             r.append(v)
         ws.append(r)
