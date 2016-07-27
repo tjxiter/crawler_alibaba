@@ -19,37 +19,27 @@ Textiles & Leather Products: 8
 Fashion: 6
 Timepieces: 4
 '''
-cids = [
-    'CID100003244', 'CID100003109', 'CID328', 'CID301', 'CID100003070', 'CID100003241', 'CID100003199', 'CID100005786', 'CID100005769', 'CID100003234',
-    'CID405', 'CID423', 'CID100000941', 'CID408', 'CID100000948', 'CID415', 'CID100000938', 'CID100000936'
-    'CID33904', 'CID33905', 'CID32801', 'CID33913', 'CID32212', 'CID324',
-    'CID1509', 'CID1511', 'CID1512', 'CID1528'
-]
 
-url = 'https://www.alibaba.com/catalogs/products/%s'
-
-
-def crawl_all():
+def crawl_all(filename, cids):
 
     br = webdriver.Firefox()
-    global cids
 
     all_urls = []
     for cid in cids:
         print cid
-        ali_url = url % cid
-        urls = crawl_ali_contact(br, cid, ali_url)
+        urls = crawl_ali_contact(br, cid)
         all_urls.extend(urls)
 
-    f = open('product_url.txt', 'a')
+    f = open(filename, 'a')
     text = ''
     for one in all_urls:
         text = '%s\nhttp://%s' % (text, one)
     f.write(text)
 
 
-def crawl_ali_contact(br, cid, ali_url):
+def crawl_ali_contact(br, cid):
 
+    ali_url = 'https://www.alibaba.com/catalogs/products/%s' % cid
     br.get(ali_url)
     soup = BeautifulSoup(br.page_source, "html.parser")
     nav_item = soup.find_all("div", attrs={"class": "l-theme-card-box uf-theme-card-border uf-theme-card-margin-bottom"})[1]
@@ -62,11 +52,17 @@ def crawl_ali_contact(br, cid, ali_url):
         br.get(page_url)
         soup = BeautifulSoup(br.page_source, "html.parser")
 
-        order = 1 if i == 0 else 0
         try:
-            nav_item = soup.find_all("div", attrs={"class": "l-theme-card-box uf-theme-card-border uf-theme-card-margin-bottom"})[order]
+            order = 1 if i == 0 else 0
+            try:
+                nav_item = soup.find_all("div", attrs={"class": "l-theme-card-box uf-theme-card-border uf-theme-card-margin-bottom"})[order]
+            except Exception, e:
+                print e
+                print 1^order
+                nav_item = soup.find_all("div", attrs={"class": "l-theme-card-box uf-theme-card-border uf-theme-card-margin-bottom"})[1^order]
+
         except Exception, e:
-            nav_item = soup.find_all("div", attrs={"class": "l-theme-card-box uf-theme-card-border uf-theme-card-margin-bottom"})[1^order]
+            pass
 
         navs = nav_item.findAll('div', {'class': 'm-product-item'})
         for nav in navs:
@@ -80,4 +76,5 @@ def crawl_ali_contact(br, cid, ali_url):
 
 
 if __name__ == "__main__":
-    crawl_all()
+    pass
+    #crawl_all()
