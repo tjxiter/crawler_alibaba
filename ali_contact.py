@@ -12,6 +12,7 @@ import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from openpyxl import Workbook
 
 
 def crawl_all():
@@ -35,13 +36,18 @@ def crawl_all():
             time.sleep(5)
         conss.append(cons)
 
+    # 保存为csv
+    create_csv(conss)
+
+    '''
+    保存文件
     text = ''
     for one in conss:
         text = '%s\n%s' % (text, one)
 
-    f = open('contact_infos.txt', 'w')
+    f = open('contact_infos.txt', 'a')
     f.write(text)
-
+    '''
 
 def crawl_ali_contact(driver, url):
 
@@ -91,6 +97,25 @@ def get_contact(driver, con_url):
     #import pdb; pdb.set_trace()
     print info
     return info
+
+
+def create_csv(data, file_name="tmp.csv"):
+
+    wb = Workbook()
+    ws = wb.active
+
+    ws.append([u'City', u'Fax', u'Country/Region', 'name', u'Zip', u'Telephone', u'Mobile Phone', u'Address', u'Province/State'])
+
+    for one in data:
+        r = []
+
+        for k, v in one.items():
+            r.append(v)
+        ws.append(r)
+
+    ws.column_dimensions['D'].width = 80
+    wb.save(file_name)
+
 
 if __name__ == "__main__":
     crawl_all()
