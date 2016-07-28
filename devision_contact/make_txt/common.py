@@ -18,7 +18,7 @@ from selenium.common.exceptions import TimeoutException
 from openpyxl import Workbook
 
 
-all_items = ["City", "Fax", "Country/Region", "name", "Zip", "Telephone", "Mobile Phone", "Address", "Province/State"]
+all_items = ["City", "Fax", "Country/Region", "name", "Zip", "Telephone", "Mobile Phone", "Address", "Province/State", "main_markets"]
 
 def crawl_all(source_file, destination_file, continue_file):
 
@@ -61,7 +61,7 @@ def crawl_all(source_file, destination_file, continue_file):
             cnt += 1
             if cons is not None:
                 conss.append(cons)
-
+                print cons
                 f = open(destination_file, 'a')
                 f.write('''%s\n''' % json.dumps(cons))
 
@@ -103,7 +103,9 @@ def crawl_ali_contact(driver, url):
         contact_url = soup.find('td', {'class': 'action-contact'}).a.get('href')
         print 'contact_url: %s' % contact_url
 
+        market = get_market(driver)
         cons = get_contact(driver, contact_url)
+        cons.update(market)
         return cons
 
     except TimeoutException:
@@ -112,6 +114,25 @@ def crawl_ali_contact(driver, url):
     except Exception, e:
         print e
         return None
+
+
+def get_market(driver):
+
+    market_url = 'https://www.alibaba.com/core/CommonSupplierTradeMarketWidget/view.json?productEncryptId=IDX1cD_Gju8YhGHhwktBMEtZlMtxg1Scw_dKGQvgncsUHsVxPZFf3mWCFMzoeNpt0BEm&ctoken=1b0__614a2134&dmtrack_pageid=af1919bf0be69d225799ac891563049f9e4f86a361'
+    driver.get(market_url)
+
+    soup = BeautifulSoup(driver.page_source, "lxml")
+    main_markets = soup.find('tbody').findAll('td')
+    lens = len(main_markets)
+    kk = [str(main_markets[i].text) for i in range(lens) if (i+1)%2]
+    vv = [str(main_markets[i].text) for i in range(lens) if (i+2)%2]
+    values = {}
+    for i in range(lens/2):
+        values[kk[i]] = vv[i]
+    res = {'main_markets': json.dumps(values)}
+
+    print res
+    return res
 
 
 def get_contact(driver, con_url):
@@ -151,7 +172,6 @@ def get_contact(driver, con_url):
     except TimeoutException:
         return None
 
-    print info
     return info
 
 
