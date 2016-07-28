@@ -19,7 +19,6 @@ def create_csv(source_file, file_name):
     ws.append(["City", "Fax", "Country/Region", "name", "Zip", "Company", "Telephone", "Mobile Phone", "Address", "main_markets", "Province/State"])
 
     for one in data:
-        #import pdb; pdb.set_trace()
         tmp = json.loads(one[:-1])
         print type(tmp)
         r = []
@@ -28,7 +27,8 @@ def create_csv(source_file, file_name):
         print r
         ws.append(r)
 
-    ws.column_dimensions['D'].width = 80
+    ws.column_dimensions['I'].width = 80
+    ws.column_dimensions['J'].width = 50
     print file_name
     wb.save(file_name)
 

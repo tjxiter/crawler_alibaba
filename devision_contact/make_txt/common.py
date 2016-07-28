@@ -96,7 +96,6 @@ def crawl_ali_contact(driver, url):
         print 't2-t1: %s' % (t2-t1)
 
         soup = BeautifulSoup(page, "lxml")
-
         t3 = time.time()
         print 't3-t2: %s' % (t3-t2)
 
@@ -104,7 +103,8 @@ def crawl_ali_contact(driver, url):
         print 'contact_url: %s' % contact_url
 
         cons = get_contact(driver, contact_url)
-        cons['main_markets'] = url
+        cons['main_markets'] = get_market(driver, page, url)
+
         return cons
 
     except TimeoutException:
@@ -113,6 +113,42 @@ def crawl_ali_contact(driver, url):
     except Exception, e:
         print e
         return None
+
+
+def get_market(driver, page, url):
+
+    dp1 = page.find('dmtrack_pageid')
+    pe1 = page.find('productEncryptId')
+    print dp1, pe1
+    if dp1 == -1 or pe1 == -1:
+        return url
+
+    p1 = page.find("'", dp1 + 15)
+    p2 = page.find("'", dp1 + 16)
+    dmtrack_pageid = page[p1+1:p2]
+
+    e1 = page.find("'", pe1 + 18)
+    e2 = page.find("'", pe1 + 20)
+    productEncryptId = page[e1+1:e2]
+
+    market_url = 'https://www.alibaba.com/core/CommonSupplierBasicInformationWidget/view.json?productEncryptId=%s&dmtrack_pageid=%s' % (productEncryptId, dmtrack_pageid)
+    print 'market_url: %s' % market_url
+    driver.get(market_url)
+    soup = BeautifulSoup(driver.page_source, "lxml")
+
+    top =soup.find('tr', {'data-role': 'companyMainMarket'}).findAll('span')
+
+    lens = len(top)
+    kk = [str(top[i].text)for i in range(lens) if (i+1)%2]
+    vv = [str(top[i].text) for i in range(lens) if (i+2)%2]
+
+    values = {}
+    for i in range(lens/2):
+        values[kk[i]] = vv[i]
+
+    print values
+
+    return json.dumps(values)
 
 
 def get_contact(driver, con_url):
@@ -134,9 +170,17 @@ def get_contact(driver, con_url):
         for i in range(len(k)):
             info[str(k[i].text[:-1])] = str(v[i].text) if v[i].text else "None"
 
-        info["Telephone"] = str(con_url)
-        info["Fax"] = str(con_url)
-        info["Mobile Phone"] = str(con_url)
+        com = con_url.split('//')[1].split('.')[0]
+        accountId = soup.find('div', {'class': 'contact-detail-mask'}).a.get('data-account-id')
+        phone_url = 'https://%s.en.alibaba.com/event/app/contactPerson/showContactInfo.htm?encryptAccountId=%s' % (com, accountId)
+
+        print phone_url
+        driver.get(phone_url)
+        soupp = BeautifulSoup(driver.page_source, "lxml")
+
+        info["Telephone"] = json.loads(soupp.find('pre').text)['contactInfo']['accountFax']
+        info["Fax"] = json.loads(soupp.find('pre').text)['contactInfo']['accountMobileNo']
+        info["Mobile Phone"] = str(json.loads(soupp.find('pre').text)['contactInfo']['accountPhone'])
 
         global all_items
         for one in all_items:
