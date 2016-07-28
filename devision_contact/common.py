@@ -18,9 +18,9 @@ from openpyxl import Workbook
 
 all_items = [u'City', u'Fax', u'Country/Region', 'name', u'Zip', u'Telephone', u'Mobile Phone', u'Address', u'Province/State']
 
-def crawl_all():
+def crawl_all(source_file, destination_file):
 
-    f = open('sample.txt', 'r')
+    f = open(source_file, 'r')
     ffprofile = webdriver.FirefoxProfile('/Users/tjx/Library/Application Support/Firefox/Profiles/tiffgp2i.default')
     driver = webdriver.Firefox(firefox_profile=ffprofile)
     driver.set_page_load_timeout(20)
@@ -34,23 +34,23 @@ def crawl_all():
         cons = crawl_ali_contact(driver, one)
         print cnt
         if cnt == 1:
-            time.sleep(15)
-            cnt += 1
+            time.sleep(20)
         else:
             time.sleep(5)
 
+        cnt += 1
         if cons is not None:
             conss.append(cons)
 
     # 保存为csv
-    create_csv(conss)
+    # create_csv(conss)
 
     #保存文件
     text = ''
     for one in conss:
         text = '%s\n%s' % (text, one)
 
-    f = open('contact_infos.txt', 'a')
+    f = open(destination_file, 'a')
     f.write(text)
 
 
@@ -60,18 +60,20 @@ def crawl_ali_contact(driver, url):
     print url
     try:
         driver.get(url)
+        page = driver.page_source
 
         t2 = time.time()
         print 't2-t1: %s' % (t2-t1)
-        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        soup = BeautifulSoup(page, "lxml")
+
+        t3 = time.time()
+        print 't3-t2: %s' % (t3-t2)
 
         contact_url = soup.find('td', {'class': 'action-contact'}).a.get('href')
         print 'contact_url: %s' % contact_url
 
         cons = get_contact(driver, contact_url)
-
-        t3 = time.time()
-        print 't3-t2: %s' % (t3-t2)
         return cons
 
     except TimeoutException:
@@ -102,7 +104,7 @@ def get_contact(driver, con_url):
 
 
         #import pdb; pdb.set_trace()
-        phone_url = 'https://highrich-leather.en.alibaba.com/event/app/contactPerson/showContactInfo.htm?encryptAccountId=IDX1AUz_1SRC3Ip3WLF6oUsZmjJVrj4bYT4sPXDjNraA3oqIuJBdiCLIGRO3gOVrsf32'
+        phone_url = 'https://lihuacarbide.en.alibaba.com/event/app/contactPerson/showContactInfo.htm?encryptAccountId=IDX12JoLPO9gXWrs-0IDjwFAvxh3XcYTygWawT_n8hNyJZnTi-8dA257Qr3QEDh6QXcA'
         driver.get(phone_url)
 
         soupp = BeautifulSoup(driver.page_source, "html.parser")
@@ -141,4 +143,4 @@ def create_csv(data, file_name="tmp.csv"):
 
 
 if __name__ == "__main__":
-    crawl_all()
+    crawl_all('sample.txt')
