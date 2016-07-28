@@ -16,7 +16,7 @@ def create_csv(source_file, file_name):
     wb = Workbook()
     ws = wb.active
 
-    ws.append(["City", "Fax", "Country/Region", "name", "Zip", "Telephone", "Mobile Phone", "Address", "Province/State", "main_markets"])
+    ws.append(["City", "Fax", "Country/Region", "name", "Zip", "Telephone", "Mobile Phone", "Address", "main_markets", "Province/State"])
 
     for one in data:
         #import pdb; pdb.set_trace()
