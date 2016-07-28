@@ -1,11 +1,13 @@
 #!/usr/bin/python
 #coding:UTF-8
 
+import json
+
 from openpyxl import Workbook
 
 
-def create_csv(source_file, file_name="tmp.csv"):
-  
+def create_csv(source_file, file_name):
+
     data = []
     f = open(source_file, 'r')
     for one in f.readlines():
@@ -14,15 +16,20 @@ def create_csv(source_file, file_name="tmp.csv"):
     wb = Workbook()
     ws = wb.active
 
-    ws.append([u'City', u'Fax', u'Country/Region', 'name', u'Zip', u'Telephone', u'Mobile Phone', u'Address', u'Province/State'])
+    ws.append(["City", "Fax", "Country/Region", "name", "Zip", "Telephone", "Mobile Phone", "Address", "Province/State"])
 
     for one in data:
+        #import pdb; pdb.set_trace()
+        tmp = json.loads(one[:-1])
+        print type(tmp)
         r = []
-        for k, v in one.items():
+        for k, v in tmp.items():
             r.append(v)
+        print r
         ws.append(r)
 
     ws.column_dimensions['D'].width = 80
+    print file_name
     wb.save(file_name)
 
 if __name__ == '__main__':
