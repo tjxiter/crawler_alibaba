@@ -18,7 +18,7 @@ from selenium.common.exceptions import TimeoutException
 from openpyxl import Workbook
 
 
-all_items = ["City", "Fax", "Country/Region", "name", "Zip", "Telephone", "Mobile Phone", "Address", "Province/State", "main_markets"]
+all_items = ["City", "Fax", "Country/Region", "Company", "name", "Zip", "Telephone", "Mobile Phone", "Address", "Province/State", "main_markets"]
 
 def crawl_all(source_file, destination_file, continue_file):
 
@@ -103,9 +103,8 @@ def crawl_ali_contact(driver, url):
         contact_url = soup.find('td', {'class': 'action-contact'}).a.get('href')
         print 'contact_url: %s' % contact_url
 
-        market = get_market(driver)
         cons = get_contact(driver, contact_url)
-        cons.update(market)
+        cons['main_markets'] = url
         return cons
 
     except TimeoutException:
@@ -114,25 +113,6 @@ def crawl_ali_contact(driver, url):
     except Exception, e:
         print e
         return None
-
-
-def get_market(driver):
-
-    market_url = 'https://www.alibaba.com/core/CommonSupplierTradeMarketWidget/view.json?productEncryptId=IDX1cD_Gju8YhGHhwktBMEtZlMtxg1Scw_dKGQvgncsUHsVxPZFf3mWCFMzoeNpt0BEm&ctoken=1b0__614a2134&dmtrack_pageid=af1919bf0be69d225799ac891563049f9e4f86a361'
-    driver.get(market_url)
-
-    soup = BeautifulSoup(driver.page_source, "lxml")
-    main_markets = soup.find('tbody').findAll('td')
-    lens = len(main_markets)
-    kk = [str(main_markets[i].text) for i in range(lens) if (i+1)%2]
-    vv = [str(main_markets[i].text) for i in range(lens) if (i+2)%2]
-    values = {}
-    for i in range(lens/2):
-        values[kk[i]] = vv[i]
-    res = {'main_markets': json.dumps(values)}
-
-    print res
-    return res
 
 
 def get_contact(driver, con_url):
@@ -145,6 +125,7 @@ def get_contact(driver, con_url):
         info = {}
         overview = soup.find('div', {'class': 'contact-overview'}).find('div', {'class': 'contact-info'})
 
+        info["Company"] = str(soup.find('table', {'class': 'company-info-data table'}).findAll('tr')[0].findAll('td')[-1].text)
         info["name"] = str(overview.h1.text.strip())
         details = soup.find('div', {'class': 'contact-detail'})
 
@@ -153,17 +134,9 @@ def get_contact(driver, con_url):
         for i in range(len(k)):
             info[str(k[i].text[:-1])] = str(v[i].text) if v[i].text else "None"
 
-        # phone_url 要经常换，因为会过期
-        #phone_url = 'https://lihuacarbide.en.alibaba.com/event/app/contactPerson/showContactInfo.htm?encryptAccountId=IDX12JoLPO9gXWrs-0IDjwFAvxh3XcYTygWawT_n8hNyJZnTi-8dA257Qr3QEDh6QXcA'
-        phone_url = 'https://oshenda.en.alibaba.com/event/app/contactPerson/showContactInfo.htm?encryptAccountId=IDX1kJ0WNSgFGJue6gJ-5303DPpwNhyB9J1sDv0A063jt8IwOjUmlISmHU5CGPq0krvX'
-        driver.get(phone_url)
-
-        soupp = BeautifulSoup(driver.page_source, "lxml")
-        soup_dict = json.loads(soupp.find('pre').text)
-
-        info["Telephone"] = str(soup_dict['contactInfo']['accountPhone'])
-        info["Fax"] = str(soup_dict['contactInfo']['accountFax'])
-        info["Mobile Phone"] = str(soup_dict['contactInfo']['accountMobileNo'])
+        info["Telephone"] = str(con_url)
+        info["Fax"] = str(con_url)
+        info["Mobile Phone"] = str(con_url)
 
         global all_items
         for one in all_items:
